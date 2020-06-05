@@ -1,0 +1,51 @@
+import RPi.GPIO as GPIO
+import time
+from gpiozero import PWMLED
+GPIO.setmode(GPIO.BCM)
+
+TRIG = 23
+ECHO = 24
+LED = 12
+
+GPIO.setup(TRIG, GPIO.OUT)
+GPIO.setup(ECHO, GPIO.IN)
+GPIO.setup(LED, GPIO.OUT)
+
+ledPwm = GPIO.PWM(LED, 100)
+ledPwm.start(0)
+
+try:
+    while True:
+        
+        GPIO.output(TRIG, False)
+        time.sleep(0.5)                #Delay between readings
+        
+        GPIO.output(TRIG, True)
+        time.sleep(0.00001)          #Flash the trigger
+        GPIO.output(TRIG, False)
+        
+        while GPIO.input(ECHO)== 0:
+            pulse_start = time.time()   #Record time till echo starts 
+            
+        while GPIO.input(ECHO)==1:      #Record time instance of echo received
+            pulse_end = time.time()
+            
+        pulse_duration = pulse_end - pulse_start    #Time duration
+        distance = pulse_duration * 17150           #Account for speed of sound to get distance
+        distance = round(distance, 2)
+        print("Distance: ", distance, " cm")
+        
+        dutyCycle = 100-((distance - 5)*2)    #Calculate duty cycle % dependent on distance
+        if (distance < 5):
+            dutyCycle = 100
+        elif (distance > 55):
+            dutyCycle = 0
+            
+        dutyCycle = round(dutyCycle)
+        print("Duty Cycle:", dutyCycle, "%")
+        
+        ledPwm.ChangeDutyCycle(dutyCycle)    #Set dutyCycle distance
+        
+except KeyboardInterrupt:
+    print("GPIO Pins Reset")
+    GPIO.cleanup()
